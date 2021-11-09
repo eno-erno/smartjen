@@ -12,7 +12,7 @@
         <div class="col-12 col-sm-5 mx-sm-auto mt-5">
             <div class="card">
                 <div class="card-header">
-                    Chat Room
+                    Chat Room to student <strong>{{nameUser}}</strong>
                 </div>
                 <div class="card-contant">
                     <div class="wrapChat py-4">
@@ -56,7 +56,9 @@ export default {
         tabsTheacer:false,
         students: [],
         teachers: [],
-        teacherName: ''
+        teacherName: '',
+        idUser: '',
+        nameUser: ''
       }
     },
     methods: {
@@ -129,6 +131,15 @@ export default {
       this.getStudent();
       this.getTeacher();
     },
+    mounted(){
+      // this.idUser = this.$route.params.rows.id
+      // this.nameUser = this.$route.params.rowsstudent
+      console.log(this.$route.params.appParams)
+      if (this.$route.params.appParams) {
+        this.currentParam = this.$route.params.appParams;
+        this.tableView = this.$route.params.tableView;
+      }
+    }
 }
 </script>
 <style scoped>

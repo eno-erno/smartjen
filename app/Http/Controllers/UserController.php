@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Mail;
 use DB;
 use Auth; 
 use JWTAuth;
+use App\Events\MessageSent;
+
 
 class UserController extends Controller
 {
@@ -106,29 +108,46 @@ class UserController extends Controller
 
     public function createStundent(Request $request, $type)
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users'
-        ]);
+        if(empty($request->get('id'))){
+            $request->validate([
+                'name' => 'required',
+                'email' => 'required|email|unique:users'
+            ]);
+        } else {
+            $request->validate([
+                'name' => 'required',
+                'email' => 'required|email|unique:users,email,'.$request->get('id')
+            ]);
+        }
         try {
             $user = auth()->user();
             DB::beginTransaction();
             $pass = explode("@",$request->email);
-            $userDB = User::create([
-                'email' => strtolower($request->email),
-                'schools_id' => $user->schools_id,
-                'password' => Hash::make($pass[0]),
-            ]); 
-            DB::table('role_user')->insert(['user_id' => $userDB->id, 'role_id' => ($type == 'student' ? '3' : '2')]);
-            if($type == 'student'){
-                DB::table('student')->insert(['users_id' => $userDB->id, 'student' => strtolower($request->name)]);
-            }else{
-                DB::table('teachers')->insert(['users_id' => $userDB->id, 'teacher' => strtolower($request->name)]);
+            if(empty($request->get('id'))){
+                $userDB = User::create([
+                    'email' => strtolower($request->email),
+                    'schools_id' => $user->schools_id,
+                    'password' => Hash::make($pass[0]),
+                ]); 
+                DB::table('role_user')->insert(['user_id' => $userDB->id, 'role_id' => ($type == 'student' ? '3' : '2')]);
+                if($type == 'student'){
+                    DB::table('student')->insert(['users_id' => $userDB->id, 'student' => strtolower($request->name)]);
+                }else{
+                    DB::table('teachers')->insert(['users_id' => $userDB->id, 'teacher' => strtolower($request->name)]);
+                }
+            } else {
+                $dataUser = DB::table('users')->where('id', '=',$request->get('id'));
+                $dataUser->update(['email' => strtolower($request->email)]);
+                if($type == 'student'){
+                    DB::table('student')->where('users_id', '=', $request->get('id'))->update(['student' => strtolower($request->name)]);
+                }else{
+                    DB::table('teachers')->where('users_id', '=', $request->get('id'))->update(['teacher' => strtolower($request->name)]);
+                }
             }
             DB::commit();
             $data = [
                 'status' => 200,
-                'message' => 'Success insert data',
+                'message' => empty($request->get('id')) ? 'Success insert data' : "Success update data",
             ];
             return response()->json($data, 200);
         } catch (\exception $th) {
@@ -192,5 +211,24 @@ class UserController extends Controller
             "status" => 200,
             "message" => "Success invite"
         ]);
+    }
+
+    public function sendMessage(Request $request, $to)
+    {
+        $user = Auth::user();
+        $message = DB::table('messages')->insertGetId(['user_from_id' => $user->id,'user_to_id' => $to, 'message' => $request->get('message')]);
+        // event(new MessageSent($user, $message));
+
+        return ['status' => 'Message Sent!'];
+    }
+    public function getMessage($to)
+    {
+        $user = Auth::user();
+        $data = DB::table('messages')->orWhere(['user_from_id' => $user->id, 'user_to_id' => $to])->orWhere(['user_to_id' => $user->id, 'user_from_id' => $to])->get();
+        $response = [
+            'data' => !empty($data) ? $data : null,
+            'message'   => 'success'
+        ];
+        return response()->json($response,200);
     }
 }

@@ -13,51 +13,91 @@
       <button class="btn btn-sm btn-dark" @click="handleTabs('student')">Student</button>
       <button class="btn btn-sm btn-dark" @click="handleTabs('teacher')">Teacher</button>
     </div>
-    <div class="row" v-if="tabsSrudent">
+    <div class="row">
       <div class="col-12 col-sm-6">
-        <h2>Student <strong>{{schools}}</strong></h2>
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="width:10%">No</th>
-              <th>Name Student</th>
-              <th style="width:10%">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(rows, index) in students" :key="index">
-              <td>{{ index + 1 }}</td>
-              <td>{{ rows.student }}</td>
-              <td>
-                <button
-                  class="btn btn-info btn-sm"
-                  @click="handleChat(rows.id, 'STUDENT')"
-                >
-                  Chat
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="row" v-if="tabsSrudent">
+          <div class="col-12">
+            <h2 class="bg-white shadow mt-3 p-3">Student</h2>
+            <table class="table mt-5">
+              <thead>
+                <tr>
+                  <th style="width:10%">No</th>
+                  <th>Name Student</th>
+                  <th style="width:10%">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(rows, index) in students" :key="index">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ rows.student }}</td>
+                  <td>
+                    <button
+                      class="btn btn-info btn-sm"
+                      @click="handleChat(rows)"
+                    >
+                      Chat
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="row" v-if="tabsTheacer">
+          <div class="col-12">
+            <h2 class="bg-white shadow mt-3 p-3">Teacher</h2>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Name Teacher</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(rows, index) in teachers" :key="rows.id">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ rows.teacher }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="row" v-if="tabsTheacer">
-      <div class="col-12 col-sm-6">
-        <h2>Teacher <strong>{{schools}}</strong></h2>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(rows, index) in teachers" :key="rows.id">
-              <td>{{ index + 1 }}</td>
-              <td>{{ rows.teacher }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="col-12 col-sm-6" v-if="showChat">
+        <div class="row">
+          <div class="col-12  mx-sm-auto mt-5">
+              <div class="card">
+                  <div class="card-header">
+                      Chat Room to student <strong>{{nameUser}}</strong>
+                  </div>
+                  <div class="card-contant">
+                      <div class="wrapChat py-4">
+                          <div class="row" v-for="(rows, index) in messageAllFrom" :key="index">
+                              <div class="col-12 text-start mb-3 ">
+                                  <div class="chatting px-2 w-50 text-white p-3 rounded" :class="{'text-end' : rows.user_from_id === teacherId, 'ms-auto' : rows.user_from_id === teacherId,'bg-secondary' : rows.user_from_id === teacherId,'bg-info' : rows.user_from_id !== teacherId}">
+                                      {{rows.message}}
+                                  </div>
+                              </div>
+                              <!-- <div class="col-12 mb-3" v-if="rows.user_from_id === nameUserid">
+                                  <div class="chatting px-2 w-50 text-end ms-auto bg-secondary p-3 text-white rounded">
+                                      {{rows.message}}
+                                  </div>
+                              </div> -->
+                          </div>
+                      </div>
+                  </div>
+                  <div class="card-contant pt-4">
+                      <!-- <form action=""> -->
+                            <div class="d-flex">
+                                <textarea name="" rows="1" class="form-control me-2" placeholder="Input Message" v-model="message"></textarea>
+                                <button class="btn btn-primary" @click="sendMessage()">Send</button>
+                            </div>
+                      <!-- </form> -->
+                  </div>
+              </div>
+              <button class="btn btn-warning my-3" @click="handleCancle">Cancel</button>
+          </div>
+      </div>
       </div>
     </div>
   </div>
@@ -74,7 +114,14 @@ export default {
         tabsTheacer:false,
         students: [],
         teachers: [],
-        teacherName: ''
+        teacherName: '',
+        teacherId: '',
+        showChat:false,
+        nameUser: '',
+        nameUserid: '',
+        chatUser : {},
+        message: '',
+        messageAllFrom: []
       }
     },
     methods: {
@@ -115,6 +162,7 @@ export default {
           .then((response) => {
             this.teachers = response.data.data.getTeacher;
             this.teacherName = response.data.data.teacher.teacher.toUpperCase()
+            this.teacherId = response.data.data.teacher.users_id
           })
           .catch((error) => {
             if (error.response.status === 401) {
@@ -137,15 +185,55 @@ export default {
           this.tabsTheacer = true
         }
       },
-      handleChat(){
-        this.$router.push('/teacher/chat')
-      }
+      handleChat(rows){
+        this.showChat = true
+        this.nameUser = rows.student.toUpperCase();
+        this.nameUserid = rows.id;
+        this.chatUser = rows;
+        this.getMessage(rows.id);
+      },
+      handleCancle(){
+        this.showChat = false
+      },
+      getMessage(id){
+        axios.get(`/api/messages/${id}`)
+          .then(res => {
+            this.messageAllFrom = res.data.data;
+            // res.data.data.map(element => {
+            //   if(element.user_from_id === this.teacherId){
+            //     console.log('asu')
+            //     this.messageAllFrom.push(element)
+            //   }
+            // });
+            // console.log('kentu',this.messageAllFrom)
+          })
+          .catch(err => {
+            console.log(err);
+          })
+      },
+      sendMessage(){
+        axios.post(`/api/messages/${this.chatUser.id}`, {
+          'message' : this.message
+        }).then(response => {
+          console.log(response.data);
+          this.getMessage(this.chatUser.id);
+        });
+      },
     },
     created() {
       document.title = "Teacher";
       this.getUserLogin();
       this.getStudent();
       this.getTeacher();
-    },
+      this.getMessage(this.chatUser.id);
+      setInterval(() => {
+        if(this.chatUser.id){
+          this.getMessage(this.chatUser.id);
+        }
+      }, 1000);
+    }
 }
 </script>
+<style scoped>
+.wrapChat{height: 350px; overflow: auto;}
+</style>

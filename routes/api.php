@@ -17,3 +17,5 @@ Route::get('/user-by-admin',[UserController::class, 'getUserByAdmin'])->middlewa
 Route::post('/create/{type?}',[UserController::class, 'createStundent'])->middleware('auth:api');
 Route::delete('/delete-student/{id}',[UserController::class, 'deleteStundent'])->middleware('auth:api');
 Route::delete('/delete-teacher/{id}',[UserController::class, 'deleteTeacher'])->middleware('auth:api');
+Route::post('/messages/{id?}',[UserController::class, 'sendMessage'])->middleware('auth:api');
+Route::get('/messages/{id?}',[UserController::class, 'getMessage'])->middleware('auth:api');

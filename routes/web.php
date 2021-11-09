@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Events\MessageSent;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +15,10 @@ use App\Http\Controllers\UserController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/chat-test', function () {
+    MessageSent::dispatch();
+});
 
 Route::get('/{any}', function(){
     return view('welcome');

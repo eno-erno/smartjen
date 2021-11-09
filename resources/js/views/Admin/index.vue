@@ -20,7 +20,7 @@
     </div>
     <div class="row" v-if="tabsSrudent">
       <div class="col-12 col-sm-6">
-        <h2>Student</h2>
+        <h2 class="bg-white shadow mt-3 p-3">Student</h2>
         <div class="col-sm-6">
           <div class="alert alert-primary" role="alert" v-if="message">
             {{ message }}
@@ -33,7 +33,7 @@
             </p>
           </div>
         </div>
-        <form v-on:submit.prevent="submitForm">
+        <form v-on:submit.prevent="submitForm" class="p-3 shadow mt-4">
           <div class="form-group">
             <label for="name">Name</label>
             <input
@@ -55,14 +55,15 @@
             />
           </div>
           <div class="form-group">
-            <button class="btn btn-primary btn-sm">Submit</button>
+            <button class="btn btn-primary btn-sm">{{btnStatus ? 'Submit' : 'Update'}}</button>
+            <button class="btn btn-warning btn-sm" type="button" v-if="btnStatus === false" @click="handleCancelForm">Cancel</button>
           </div>
         </form>
-        <table class="table">
+        <table class="table mt-5">
           <thead>
             <tr>
               <th>No</th>
-              <th>Name</th>
+              <th>Name Student</th>
               <th>Email</th>
               <th>Action</th>
             </tr>
@@ -98,8 +99,8 @@
       </div>
     </div>
     <div class="row" v-if="tabsTheacer">
-      <h2>Teacher</h2>
       <div class="col-12 col-sm-6">
+        <h2 class="bg-white shadow mt-3 p-3">Teacher</h2>
         <div class="alert alert-primary" role="alert" v-if="messageTeacher">
           {{ messageTeacher }}
         </div>
@@ -110,7 +111,7 @@
             </p>
           </div>
         </div>
-        <form v-on:submit.prevent="submitFormTeacher">
+        <form v-on:submit.prevent="submitFormTeacher" class="p-3 shadow mt-4">
           <div class="form-group">
             <label for="name">Name</label>
             <input
@@ -132,14 +133,15 @@
             />
           </div>
           <div class="form-group">
-            <button class="btn btn-primary btn-sm">Submit</button>
+            <button class="btn btn-primary btn-sm">{{btnStatusTeacher ? 'Submit' : 'Update'}}</button>
+            <button class="btn btn-warning btn-sm" type="button" v-if="btnStatusTeacher === false" @click="handleCancelForm">Cancel</button>
           </div>
         </form>
-        <table class="table">
+        <table class="table mt-5">
           <thead>
             <tr>
               <th>No</th>
-              <th>Name</th>
+              <th>Name Teacher</th>
               <th>Email</th>
               <th>Action</th>
             </tr>
@@ -147,8 +149,8 @@
           <tbody>
             <tr v-for="(rows, index) in teachers" :key="rows.id">
               <td>{{ index + 1 }}</td>
-              <td>{{ rows.email }}</td>
               <td>{{ rows.teacher }}</td>
+              <td>{{ rows.email }}</td>
               <td>
                 <span
                   class="badge bg-danger"
@@ -187,8 +189,14 @@ export default {
       students: [],
       teachers: [],
       modalShow: false,
-      form: {},
-      formTeacher: {},
+      form: {
+        name: '',
+        email: ''
+      },
+      formTeacher: {
+        name: '',
+        email: ''
+      },
       message: "",
       messageTeacher: "",
       errors: null,
@@ -197,6 +205,8 @@ export default {
       email: null,
       tabsSrudent: true,
       tabsTheacer: false,
+      btnStatus:true,
+      btnStatusTeacher: true
     };
   },
   methods: {
@@ -207,7 +217,7 @@ export default {
         .then((response) => {
           this.user = response.data;
           this.loginType = response.data.roles[0].name;
-          this.schools = response.data.Schools.name;
+          this.schools = response.data.Schools.name.toUpperCase();
         })
         .catch((error) => {
           if (error.response.status === 401) {
@@ -264,11 +274,10 @@ export default {
     },
     submitFormTeacher() {
       axios
-        .post("/api/create/teacher", this.form)
+        .post("/api/create/teacher", this.formTeacher)
         .then((res) => {
           this.error = null;
           this.getTeacher();
-          console.log(res);
           this.messageTeacher = res.data.message;
           setTimeout(() => {
             this.messageTeacher = false;
@@ -319,10 +328,15 @@ export default {
     },
     handleUpdate(rows, type) {
       if (type === "STUDENT") {
-        console.log(rows);
         this.form.name = rows.student;
         this.form.email = rows.email;
-        console.log(this.form);
+        this.form.id = rows.id;
+        this.btnStatus = false;
+      }else{
+        this.formTeacher.name = rows.teacher;
+        this.formTeacher.email = rows.email;
+        this.formTeacher.id = rows.id;
+        this.btnStatusTeacher = false
       }
     },
     handleTabs(id) {
@@ -352,6 +366,17 @@ export default {
           });
       }
     },
+    handleCancelForm(){
+        this.btnStatusTeacher = true
+        this.btnStatus = true;
+        this.resetForm()
+    },
+    resetForm(){
+        this.form.name = '';
+        this.form.email = '';
+        this.formTeacher.name = '';
+        this.formTeacher.email = '';
+    }
   },
   created() {
     document.title = "Admin Schools";
